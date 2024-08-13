@@ -1,0 +1,104 @@
+version: "3.7"
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - mynetwork
+
+  mysql:
+    image: mysql:8.0 # Use the official MySQL 8.0 image
+    container_name: mysql_container
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword # Set the MySQL root password
+      MYSQL_DATABASE: mydatabase # Create a database named 'mydatabase'
+      MYSQL_USER: user # Create a user 'user'
+      MYSQL_PASSWORD: userpassword # Set the password for 'user'
+    ports:
+      - "3306:3306" # Expose MySQL on port 3306
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - mynetwork
+  node-app:
+    build: .
+    container_name: node-app
+    ports:
+      - 3000:3000
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./src:/app/src:rw
+    networks:
+      - mynetwork
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin # Use the official phpMyAdmin image
+    container_name: phpmyadmin_container
+    environment:
+      PMA_HOST: mysql # The MySQL service name
+      PMA_USER: root # Default MySQL root user
+      PMA_PASSWORD: rootpassword # The root password set in MySQL
+    ports:
+      - "8080:80" # Expose phpMyAdmin on port 8080
+    networks:
+      - mynetwork
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    networks:
+      - mynetwork
+    volumes:
+      - mongo-data:/data/db
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_BASICAUTH=false
+    networks:
+      - mynetwork
+    depends_on:
+      - mongo
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    privileged: true
+    user: root
+    ports:
+      - 8090:8080
+    container_name: jenkins
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JENKINS_USER=admin
+      - JENKINS_PASS=changeme
+    restart: always
+
+    networks:
+      - mynetwork
+
+volumes:
+  db_data:
+  src:
+  jenkins-data:
+  mongo-data:
+    driver: local
+
+networks:
+  mynetwork:
