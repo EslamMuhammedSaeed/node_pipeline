@@ -3,4 +3,7 @@ node_modules
 .env
 data
 docker-entrypoint-initdb.d
+Dockerfile
+docker-compose.yml
+
 
